@@ -2,18 +2,8 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>FitDash</title>
-
-  <!-- PWA: iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="FitDash" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxyZWN0IHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiIHJ4PSIyMDAiIGZpbGw9IiMwOTA5MGIiLz48dGV4dCB4PSI1MTIiIHk9IjYyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjUwMCIgZmlsbD0iIzIyZDNlZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+HpDwvdGV4dD48L3N2Zz4=" />
-
-  <!-- PWA: Android / Chrome -->
-  <meta name="theme-color" content="#09090b" />
-  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -1555,55 +1545,6 @@ function renderTreinoAtual(rows) {
 
   renderTab(dias[0]);
 }
-
-// === SECTION: PWA — MANIFEST + SERVICE WORKER ===
-(function initPWA() {
-  // Manifest inline via Blob (Android/Chrome)
-  const manifest = {
-    name: 'Fitness Dashboard',
-    short_name: 'FitDash',
-    description: 'Painel de treinos e evolução corporal',
-    start_url: './',
-    display: 'standalone',
-    background_color: '#09090b',
-    theme_color: '#09090b',
-    orientation: 'portrait-primary',
-    icons: [
-      { src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%2309090b"/><text y=".9em" font-size="85" x="50%" text-anchor="middle">💪</text></svg>', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-    ]
-  };
-  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-  const link = document.createElement('link');
-  link.rel = 'manifest';
-  link.href = URL.createObjectURL(blob);
-  document.head.appendChild(link);
-
-  // Service Worker inline via Blob (cache offline)
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-      const CACHE = 'fitdash-v1';
-      const URLS  = [self.location.href.replace(/\\/sw-\\w+\\.js.*/, '/')];
-      self.addEventListener('install',  e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)).catch(()=>{})); self.skipWaiting(); });
-      self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });
-      self.addEventListener('fetch',    e => {
-        if (e.request.url.includes('google')) return; // nunca cachear CSVs do Sheets
-        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => { const c=res.clone(); caches.open(CACHE).then(ca=>ca.put(e.request,c)); return res; })));
-      });
-    `;
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
-  }
-
-  // Safe area padding para o iPhone (notch / Dynamic Island)
-  const style = document.createElement('style');
-  style.textContent = `
-    @supports (padding-top: env(safe-area-inset-top)) {
-      header { padding-top: calc(0.75rem + env(safe-area-inset-top)) !important; }
-      #sidebar { padding-top: calc(1rem + env(safe-area-inset-top)) !important; }
-    }
-  `;
-  document.head.appendChild(style);
-})();
 
 // === SECTION: INIT ===
 document.addEventListener('DOMContentLoaded', () => {
