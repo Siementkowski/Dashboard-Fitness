@@ -577,11 +577,17 @@
       <label class="m-label">Exercício</label>
       <input id="log-treino-exercicio" type="text" placeholder="Ex: Supino Reto" class="m-input" list="dl-exercicios" autocomplete="off" />
     </div>
-    <div style="margin-bottom:14px">
-      <label class="m-label">Grupo Muscular</label>
-      <input id="log-treino-grupo" type="text" placeholder="Ex: Peito" class="m-input" list="dl-grupos" autocomplete="off" />
+    <div class="m-form-2" style="margin-bottom:14px">
+      <div>
+        <label class="m-label">Grupo Muscular</label>
+        <input id="log-treino-grupo" type="text" placeholder="Ex: Peito" class="m-input" list="dl-grupos" autocomplete="off" />
+      </div>
+      <div>
+        <label class="m-label">Equipamento</label>
+        <input id="log-treino-equip" type="text" placeholder="Ex: Máquina" class="m-input" list="dl-equipamentos" autocomplete="off" />
+      </div>
     </div>
-    <div class="m-form-3" style="margin-bottom:22px">
+    <div class="m-form-3" style="margin-bottom:14px">
       <div>
         <label class="m-label">Séries</label>
         <input id="log-treino-series" type="number" placeholder="3" min="1" max="99" class="m-input" style="text-align:center" />
@@ -593,6 +599,17 @@
       <div>
         <label class="m-label">Carga (kg)</label>
         <input id="log-treino-carga" type="number" placeholder="60" min="0" step="0.5" class="m-input" style="text-align:center" />
+      </div>
+    </div>
+    <div style="margin-bottom:22px">
+      <label class="m-label">RPE <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#52525b">(esforço percebido, 1–10)</span></label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="log-treino-rpe" type="number" placeholder="8" min="1" max="10" step="0.5" class="m-input" style="text-align:center;max-width:90px" />
+        <div style="flex:1;display:flex;justify-content:space-between;padding:0 4px">
+          <span style="font-size:10px;color:#52525b">Fácil</span>
+          <span style="font-size:10px;color:#52525b">Moderado</span>
+          <span style="font-size:10px;color:#f97316">Máximo</span>
+        </div>
       </div>
     </div>
     <button class="m-save-btn" onclick="saveLogEntry('treino')">Salvar Treino</button>
@@ -622,6 +639,15 @@
 <datalist id="dl-treinos"></datalist>
 <datalist id="dl-exercicios"></datalist>
 <datalist id="dl-grupos"></datalist>
+<datalist id="dl-equipamentos">
+  <option value="Máquina"></option>
+  <option value="Barra"></option>
+  <option value="Halteres"></option>
+  <option value="Cabo"></option>
+  <option value="Peso corporal"></option>
+  <option value="Smith"></option>
+  <option value="Elástico"></option>
+</datalist>
 
 <script>
 // === SECTION: CONFIG ===
@@ -1902,12 +1928,14 @@ async function saveLogEntry(type) {
     const nome    = document.getElementById('log-treino-nome').value.trim();
     const exerc   = document.getElementById('log-treino-exercicio').value.trim();
     const grupo   = document.getElementById('log-treino-grupo').value.trim();
+    const equip   = document.getElementById('log-treino-equip').value.trim();
     const series  = document.getElementById('log-treino-series').value;
     const reps    = document.getElementById('log-treino-reps').value;
     const carga   = document.getElementById('log-treino-carga').value;
+    const rpe     = document.getElementById('log-treino-rpe').value;
 
-    if (!exerc) { showToast('Preencha o exercício ⚠️', 'warn'); return; }
-    if (!dataVal) { showToast('Escolha a data', 'warn'); return; }
+    if (!exerc)   { showToast('Preencha o exercício ⚠️', 'warn'); return; }
+    if (!dataVal) { showToast('Escolha a data', 'warn');           return; }
 
     const [y, m, d] = dataVal.split('-').map(Number);
     const dataObj   = new Date(y, m - 1, d);
@@ -1915,34 +1943,37 @@ async function saveLogEntry(type) {
     const entry = {
       _local: true,
       _id: Date.now() + '_' + Math.random().toString(36).slice(2),
-      dataISO: dataVal,
-      data:     dataObj,
+      dataISO:   dataVal,
+      data:      dataObj,
       treino:    nome,
       exercicio: exerc,
       grupo:     grupo,
+      equip:     equip,
       serie:  series ? parseFloat(series) : null,
       reps:   reps   ? parseFloat(reps)   : null,
       carga:  carga  ? parseFloat(carga)  : null,
+      rpe:    rpe    ? parseFloat(rpe)    : null,
     };
 
     persistLocalTreino(entry);
     rawData.treinos.push(entry);
-    // Não precisa re-ordenar globalmente — renderMobileHistorico já ordena
 
-    // POST pro Sheets (fire & forget)
+    // POST pro Sheets (fire & forget) — nomes de campo = cabeçalhos da planilha
     postToSheets('treino', {
-      data: formatDate(dataObj),
-      treino:    nome,
-      exercicio: exerc,
-      grupo:     grupo,
-      series:    series || '',
-      reps:      reps   || '',
-      carga:     carga  || '',
+      'Data':           formatDate(dataObj),
+      'Exercício':      exerc,
+      'Grupo Muscular': grupo,
+      'Equipamento':    equip,
+      'Séries':         series || '',
+      'Repetições':     reps   || '',
+      'Carga (kg)':     carga  || '',
+      'RPE':            rpe    || '',
     });
 
-    // Manter data e nome do treino para próxima série; limpar exercício e carga
+    // Manter data, treino e equipamento para a próxima série; limpar exercício, carga e RPE
     document.getElementById('log-treino-exercicio').value = '';
     document.getElementById('log-treino-carga').value     = '';
+    document.getElementById('log-treino-rpe').value       = '';
     document.getElementById('log-treino-exercicio').focus();
 
     showToast('✓ Série salva!');
