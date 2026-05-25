@@ -45,7 +45,6 @@
     #sidebar.expanded .nav-label { opacity: 1; }
 
     /* Sidebar — mobile: drawer deslizante */
-    #sidebar-overlay { display: none; }
     @media (max-width: 1023px) {
       #sidebar {
         position: fixed !important;
@@ -60,7 +59,6 @@
       #sidebar.open { left: 0 !important; }
       #sidebar .nav-label { opacity: 1 !important; }
       #sidebar-toggle { display: none !important; }
-      #sidebar-overlay { display: block; }
     }
 
     /* Cards glass */
@@ -136,7 +134,7 @@
 </div>
 
 <!-- Overlay drawer mobile -->
-<div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm" onclick="closeSidebar()" aria-hidden="true"></div>
+<div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden" onclick="closeSidebar()" aria-hidden="true"></div>
 
 <!-- ============================= MAIN LAYOUT ============================= -->
 <div id="main-layout" class="flex h-screen overflow-hidden">
