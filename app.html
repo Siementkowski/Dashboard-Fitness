@@ -92,6 +92,38 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
 
+    /* ===== MOBILE APP ===== */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Bottom nav */
+    #bottom-nav { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .bottom-nav-btn { transition: color 0.15s; min-width: 56px; }
+    .bottom-nav-btn.active { color: #22d3ee !important; }
+    .bottom-nav-btn.active i { filter: drop-shadow(0 0 6px #22d3ee80); }
+
+    /* Mobile tabs */
+    .mobile-tab { display: none; animation: fadeUp 0.2s ease; }
+    .mobile-tab.active { display: block; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Mobile cards */
+    .m-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; position: relative; overflow: hidden; }
+    .metric-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; flex-shrink: 0; }
+    .exercise-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; }
+
+    /* Hero gradient */
+    .hero-blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.2; pointer-events: none; }
+
+    /* Section headings mobile */
+    .m-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #52525b; }
+
+    /* Mobile safe area */
+    @media (max-width: 1023px) {
+      .m-safe-top { padding-top: max(3rem, calc(1rem + env(safe-area-inset-top))); }
+      #mobile-layout { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    }
+
     /* Table */
     .data-table th { background: rgba(255,255,255,0.04); position: sticky; top: 0; z-index: 2; }
     .data-table tr:hover td { background: rgba(255,255,255,0.03); }
@@ -137,7 +169,7 @@
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden" onclick="closeSidebar()" aria-hidden="true"></div>
 
 <!-- ============================= MAIN LAYOUT ============================= -->
-<div id="main-layout" class="flex h-screen overflow-hidden">
+<div id="main-layout" class="hidden lg:flex h-screen overflow-hidden">
 
   <!-- SIDEBAR -->
   <aside id="sidebar" class="bg-zinc-900 border-r border-zinc-800 flex flex-col py-4 shrink-0 h-full overflow-y-auto">
@@ -385,6 +417,107 @@
     </div><!-- end scrollable -->
   </main>
 </div><!-- end main-layout -->
+
+<!-- ============================= MOBILE APP LAYOUT ============================= -->
+<div id="mobile-layout" class="lg:hidden">
+
+  <!-- HOME TAB -->
+  <div id="tab-home" class="mobile-tab active m-safe-top px-4 space-y-5">
+    <!-- Hero card: peso + streak + sparkline -->
+    <div id="m-hero" class="m-card p-5">
+      <div class="skeleton h-36 w-full" style="border-radius:12px"></div>
+    </div>
+    <!-- Esta Semana pills -->
+    <div>
+      <p class="m-section-title px-1 mb-2">Esta Semana</p>
+      <div id="m-pills" class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        <div class="metric-pill skeleton h-16" style="min-width:90px"></div>
+        <div class="metric-pill skeleton h-16" style="min-width:90px"></div>
+        <div class="metric-pill skeleton h-16" style="min-width:90px"></div>
+      </div>
+    </div>
+    <!-- PRs carousel -->
+    <div>
+      <p class="m-section-title px-1 mb-2">Recordes Pessoais</p>
+      <div id="m-prs-carousel" class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        <div class="metric-pill skeleton h-16" style="min-width:120px"></div>
+        <div class="metric-pill skeleton h-16" style="min-width:120px"></div>
+        <div class="metric-pill skeleton h-16" style="min-width:120px"></div>
+      </div>
+    </div>
+    <!-- Mini heatmap (12 weeks) -->
+    <div>
+      <p class="m-section-title px-1 mb-2">Consistência — 13 semanas</p>
+      <div class="m-card p-3">
+        <div id="m-heatmap" class="overflow-x-auto no-scrollbar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TREINO TAB -->
+  <div id="tab-treino" class="mobile-tab m-safe-top px-4 space-y-3">
+    <div id="m-treino-days" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+    <div id="m-treino-content"></div>
+  </div>
+
+  <!-- PROGRESSO TAB -->
+  <div id="tab-progresso" class="mobile-tab m-safe-top px-4 space-y-4">
+    <div class="m-card p-4">
+      <p class="text-sm font-semibold text-zinc-200 mb-3">Evolução Corporal</p>
+      <div id="m-chart-body" style="min-height:200px"></div>
+    </div>
+    <div class="m-card p-4">
+      <p class="text-sm font-semibold text-zinc-200 mb-3">Volume por Grupo — últimos 6 meses</p>
+      <div id="m-volume-bars"></div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO TAB -->
+  <div id="tab-historico" class="mobile-tab m-safe-top px-4 space-y-3">
+    <input id="m-busca" type="text" placeholder="Buscar exercício ou treino..."
+      class="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 placeholder-zinc-600" />
+    <div id="m-historico-list"></div>
+  </div>
+
+  <!-- RECORDES TAB -->
+  <div id="tab-recordes" class="mobile-tab m-safe-top px-4 space-y-4">
+    <div id="m-prs-grid" class="grid grid-cols-2 gap-3"></div>
+    <div>
+      <p class="m-section-title px-1 mb-2">Consistência — 26 semanas</p>
+      <div class="m-card p-3">
+        <div id="m-heatmap2" class="overflow-x-auto no-scrollbar"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end mobile-layout -->
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav id="bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/90 border-t border-zinc-800/50"
+  style="padding-bottom:env(safe-area-inset-bottom)">
+  <div class="flex items-stretch">
+    <button class="bottom-nav-btn active flex-1 flex flex-col items-center gap-0.5 py-2.5 text-zinc-500" onclick="showTab('home',this)">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span style="font-size:10px;font-weight:500">Home</span>
+    </button>
+    <button class="bottom-nav-btn flex-1 flex flex-col items-center gap-0.5 py-2.5 text-zinc-500" onclick="showTab('treino',this)">
+      <i data-lucide="dumbbell" class="w-5 h-5"></i>
+      <span style="font-size:10px;font-weight:500">Treino</span>
+    </button>
+    <button class="bottom-nav-btn flex-1 flex flex-col items-center gap-0.5 py-2.5 text-zinc-500" onclick="showTab('progresso',this)">
+      <i data-lucide="trending-up" class="w-5 h-5"></i>
+      <span style="font-size:10px;font-weight:500">Progresso</span>
+    </button>
+    <button class="bottom-nav-btn flex-1 flex flex-col items-center gap-0.5 py-2.5 text-zinc-500" onclick="showTab('historico',this)">
+      <i data-lucide="list" class="w-5 h-5"></i>
+      <span style="font-size:10px;font-weight:500">Histórico</span>
+    </button>
+    <button class="bottom-nav-btn flex-1 flex flex-col items-center gap-0.5 py-2.5 text-zinc-500" onclick="showTab('recordes',this)">
+      <i data-lucide="trophy" class="w-5 h-5"></i>
+      <span style="font-size:10px;font-weight:500">Recordes</span>
+    </button>
+  </div>
+</nav>
 
 <script>
 // === SECTION: CONFIG ===
@@ -1477,6 +1610,13 @@ async function loadAllData() {
 
   // TV mode
   if (state.tvMode) toggleTVMode(true);
+
+  // Mobile renders (always safe to call; functions guard with element checks)
+  renderMobileHome();
+  renderMobileTreino();
+  setupMobileHistorico();
+  renderMobileRecordes();
+  window._mProgressoRendered = false; // reset lazy flag so Progresso re-renders on next visit
 }
 
 // === SECTION: TREINO ATUAL ===
@@ -1589,6 +1729,450 @@ function renderTreinoAtual(rows) {
   });
 
   renderTab(dias[0]);
+}
+
+// ============================= MOBILE APP SECTION =============================
+
+// Tab switching — show/hide tabs, manage active state, lazy-render Progresso charts
+function showTab(name, btn) {
+  document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById('tab-' + name);
+  if (tab) tab.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'progresso' && !window._mProgressoRendered) {
+    window._mProgressoRendered = true;
+    setTimeout(() => renderMobileProgresso(), 60);
+  }
+}
+
+// HOME: hero + pills + PRs carousel + mini heatmap
+function renderMobileHome() {
+  renderMobileHero();
+  renderMetricPills();
+  renderPRsCarousel();
+  buildMiniHeatmap();
+}
+
+function renderMobileHero() {
+  const hero = document.getElementById('m-hero');
+  if (!hero) return;
+
+  const medidas = rawData.medidas;
+  const treinos  = rawData.treinos;
+  const comPeso  = medidas.filter(m => m.peso !== null);
+  const pesoAtual   = comPeso.length ? comPeso[comPeso.length - 1].peso : null;
+  const bfAtual     = medidas.length  ? medidas[medidas.length - 1].bf  : null;
+  const pesoInicial = comPeso.length  ? comPeso[0].peso : null;
+  const meta = CONFIG.META_PESO_KG;
+
+  // Weight trend badge
+  let trendHtml = '';
+  if (comPeso.length >= 2) {
+    const diff = comPeso[comPeso.length - 1].peso - comPeso[comPeso.length - 2].peso;
+    const sign = diff > 0 ? '+' : '';
+    const col  = diff <= 0 ? '#22d3ee' : '#f97316';
+    trendHtml = `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${col}18;color:${col};margin-left:6px">${sign}${diff.toFixed(1)} kg</span>`;
+  }
+
+  // Streak
+  let streak = 0;
+  if (treinos.length) {
+    const dias   = new Set(treinos.map(t => isoDateStr(t.data)));
+    const sorted = [...dias].sort().reverse();
+    const today     = isoDateStr(new Date());
+    const yesterday = isoDateStr(new Date(Date.now() - 86400000));
+    if (sorted[0] === today || sorted[0] === yesterday) {
+      streak = 1;
+      for (let i = 1; i < sorted.length; i++) {
+        if (dateDiffDays(new Date(sorted[i]), new Date(sorted[i - 1])) <= CONFIG.STREAK_PAUSA_DIAS + 1) streak++;
+        else break;
+      }
+    }
+  }
+
+  // Progress bar toward goal
+  let progressHtml = '';
+  if (pesoAtual !== null && pesoInicial !== null && pesoInicial !== meta) {
+    const pct = Math.max(0, Math.min(100, (pesoInicial - pesoAtual) / (pesoInicial - meta) * 100));
+    progressHtml = `
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#52525b;margin-bottom:5px">
+          <span>Meta ${meta} kg</span><span>${pct.toFixed(0)}% concluído</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct.toFixed(1)}%;background:#22d3ee"></div></div>
+      </div>`;
+  }
+
+  hero.innerHTML = `
+    <div class="hero-blob w-52 h-52" style="background:#22d3ee;top:-60px;right:-30px"></div>
+    <div class="hero-blob w-36 h-36" style="background:#8b5cf6;bottom:-30px;left:-10px"></div>
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <p class="m-section-title" style="margin-bottom:4px">Peso Atual</p>
+          <div style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap">
+            <span style="font-size:44px;font-weight:800;color:#22d3ee;line-height:1">${pesoAtual ?? '—'}</span>
+            <span style="font-size:14px;color:#71717a">kg</span>${trendHtml}
+          </div>
+          ${bfAtual !== null ? `<p style="font-size:12px;color:#71717a;margin-top:3px">BF: <span style="color:#f97316;font-weight:600">${bfAtual}%</span></p>` : ''}
+        </div>
+        <div style="text-align:right">
+          <p class="m-section-title" style="margin-bottom:4px">Sequência</p>
+          <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
+            <span style="font-size:36px;font-weight:800;color:#f97316;line-height:1">${streak}</span>
+            <span style="font-size:12px;color:#71717a">dias 🔥</span>
+          </div>
+        </div>
+      </div>
+      <div id="m-mini-chart" style="margin-top:8px;height:72px;margin-left:-4px;margin-right:-4px"></div>
+      ${progressHtml}
+    </div>`;
+
+  // Sparkline (only when visible / mobile)
+  if (comPeso.length >= 3 && window.innerWidth < 1024) {
+    const last = comPeso.slice(-16);
+    if (window._charts['m-mini-chart']) { try { window._charts['m-mini-chart'].destroy(); } catch (_) {} }
+    window._charts['m-mini-chart'] = new ApexCharts(document.getElementById('m-mini-chart'), {
+      chart: { type: 'area', height: 72, sparkline: { enabled: true }, animations: { enabled: true, speed: 600 }, background: 'transparent' },
+      series: [{ data: last.map(m => m.peso) }],
+      colors: ['#22d3ee'],
+      stroke: { curve: 'smooth', width: 2 },
+      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0, stops: [0, 100] } },
+      tooltip: { enabled: false },
+    });
+    window._charts['m-mini-chart'].render();
+  }
+}
+
+function renderMetricPills() {
+  const container = document.getElementById('m-pills');
+  if (!container) return;
+
+  const treinos = rawData.treinos;
+  const now = new Date();
+  const ws  = startOfWeek(now);
+  const we  = new Date(ws); we.setDate(we.getDate() + 6);
+  const semana = treinos.filter(t => t.data >= ws && t.data <= we);
+
+  let vol = 0;
+  semana.forEach(t => { if (t.serie && t.reps && t.carga) vol += t.serie * t.reps * t.carga; });
+  const fmtVol = vol >= 1000 ? (vol / 1000).toFixed(1) + 't' : vol.toFixed(0) + ' kg';
+  const dias   = new Set(semana.map(t => isoDateStr(t.data))).size;
+  const bf     = rawData.medidas.length ? rawData.medidas[rawData.medidas.length - 1].bf : null;
+
+  const pills = [
+    { label: 'Volume', value: fmtVol,          color: '#a78bfa' },
+    { label: 'Dias',   value: dias + '/sem',    color: '#22d3ee' },
+    { label: 'Séries', value: semana.length+'', color: '#f97316' },
+    ...(bf !== null ? [{ label: 'BF%', value: bf + '%', color: '#34d399' }] : []),
+  ];
+
+  container.innerHTML = pills.map(p => `
+    <div class="metric-pill" style="padding:12px 16px;min-width:90px;flex-shrink:0">
+      <p style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${p.color};margin-bottom:4px">${p.label}</p>
+      <p style="font-size:24px;font-weight:700;color:#f4f4f5;line-height:1">${p.value}</p>
+    </div>`).join('');
+}
+
+function renderPRsCarousel() {
+  const container = document.getElementById('m-prs-carousel');
+  if (!container) return;
+
+  const prMap = {};
+  rawData.treinos.forEach(t => {
+    if (!t.exercicio || t.carga === null) return;
+    if (!prMap[t.exercicio] || t.carga > prMap[t.exercicio].carga)
+      prMap[t.exercicio] = { carga: t.carga, data: t.data };
+  });
+
+  const prs = Object.entries(prMap)
+    .map(([ex, v]) => ({ exercicio: ex, ...v }))
+    .sort((a, b) => b.data - a.data)
+    .slice(0, 15);
+
+  if (!prs.length) {
+    container.innerHTML = '<p style="font-size:12px;color:#52525b;padding:12px 4px">Sem recordes ainda</p>';
+    return;
+  }
+
+  const COLS = ['#22d3ee','#f97316','#a78bfa','#34d399','#fb7185','#fbbf24'];
+  container.innerHTML = prs.map((pr, i) => `
+    <div class="metric-pill" style="padding:12px 16px;min-width:120px;flex-shrink:0">
+      <p style="font-size:10px;font-weight:600;color:${COLS[i%COLS.length]};margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">${escapeHtml(pr.exercicio)}</p>
+      <p style="font-size:24px;font-weight:700;color:#f4f4f5;line-height:1">${pr.carga}<span style="font-size:11px;color:#71717a;margin-left:2px">kg</span></p>
+      <p style="font-size:10px;color:#52525b;margin-top:3px">${formatDate(pr.data)}</p>
+    </div>`).join('');
+}
+
+// 13-week compact heatmap (Home tab)
+function buildMiniHeatmap() {
+  const container = document.getElementById('m-heatmap');
+  if (!container) return;
+
+  const countMap = {};
+  rawData.treinos.forEach(t => { const k = isoDateStr(t.data); countMap[k] = (countMap[k]||0)+1; });
+
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const DAY_MS = 86400000;
+  const WEEKS  = 13;
+  const start  = new Date(today.getTime() - (WEEKS * 7 - 1) * DAY_MS);
+  start.setDate(start.getDate() - start.getDay()); // align to Sunday
+
+  const cs = 13, gap = 3;
+  let html = `<div style="display:flex;gap:${gap}px">`;
+  for (let col = 0; col < WEEKS; col++) {
+    html += `<div style="display:flex;flex-direction:column;gap:${gap}px">`;
+    for (let row = 0; row < 7; row++) {
+      const d = new Date(start.getTime() + (col * 7 + row) * DAY_MS);
+      if (d > today) { html += `<div style="width:${cs}px;height:${cs}px"></div>`; continue; }
+      const n  = countMap[isoDateStr(d)] || 0;
+      const bg = n === 0 ? '#27272a' : n === 1 ? '#164e63' : n === 2 ? '#0e7490' : '#06b6d4';
+      html += `<div style="width:${cs}px;height:${cs}px;border-radius:3px;background:${bg}" title="${formatDate(d)}:${n}"></div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// TREINO: day tabs + exercise cards
+function renderMobileTreino() {
+  const daysEl    = document.getElementById('m-treino-days');
+  const contentEl = document.getElementById('m-treino-content');
+  if (!daysEl || !contentEl) return;
+
+  const rows = rawData.treinoAtual;
+  if (!rows.length) {
+    contentEl.innerHTML = `<div class="m-card" style="padding:48px 16px;text-align:center;color:#52525b">
+      <p style="font-size:14px">Sem treino atual configurado</p></div>`;
+    return;
+  }
+
+  const groups = {};
+  rows.forEach(r => { const d = r['DIA']; if (!groups[d]) groups[d] = []; groups[d].push(r); });
+  const dias  = Object.keys(groups);
+  const DCOLS = { A:'#22d3ee', B:'#f97316', C:'#a78bfa', UPPER:'#34d399', LOWER:'#fb7185' };
+
+  function showDia(dia) {
+    daysEl.querySelectorAll('.m-day-btn').forEach(b => {
+      const c  = DCOLS[b.dataset.dia] || '#22d3ee';
+      const on = b.dataset.dia === dia;
+      b.style.background   = on ? c + '22' : 'rgba(255,255,255,0.04)';
+      b.style.borderColor  = on ? c : 'rgba(255,255,255,0.1)';
+      b.style.color        = on ? c : '#71717a';
+    });
+
+    const exs = groups[dia];
+    contentEl.innerHTML = exs.map(ex => `
+      <div class="exercise-card" style="padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <p style="font-size:14px;font-weight:600;color:#f4f4f5;margin:0">${escapeHtml(ex['EXERCÍCIO']||ex['EXERCICIO']||'')}</p>
+          ${ex['GRUPO'] ? `<p style="font-size:12px;color:#71717a;margin-top:3px">${escapeHtml(ex['GRUPO'])}</p>` : ''}
+          ${ex['OBS']   ? `<p style="font-size:11px;color:#52525b;margin-top:2px;font-style:italic">${escapeHtml(ex['OBS'])}</p>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <p style="font-size:16px;font-weight:700;color:#22d3ee;margin:0">${escapeHtml(ex['SÉRIES']||ex['SERIES']||'—')}<span style="color:#52525b;font-weight:400;margin:0 3px">×</span>${escapeHtml(ex['REPETIÇÕES']||ex['REPETICOES']||'—')}</p>
+        </div>
+      </div>`).join('');
+  }
+
+  daysEl.innerHTML = '';
+  dias.forEach(dia => {
+    const btn = document.createElement('button');
+    btn.className    = 'm-day-btn';
+    btn.dataset.dia  = dia;
+    btn.textContent  = dia;
+    btn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#71717a;padding:8px 20px;border-radius:24px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0;transition:all 0.15s';
+    btn.addEventListener('click', () => showDia(dia));
+    daysEl.appendChild(btn);
+  });
+  showDia(dias[0]);
+}
+
+// PROGRESSO: body chart + horizontal volume bars (lazy — rendered on tab visit)
+function renderMobileProgresso() {
+  const chartEl = document.getElementById('m-chart-body');
+  const medidas = rawData.medidas;
+  if (chartEl && medidas.length >= 2) {
+    if (window._charts['m-body']) { try { window._charts['m-body'].destroy(); } catch (_) {} }
+    window._charts['m-body'] = new ApexCharts(chartEl, {
+      chart: { type: 'line', height: 200, background: 'transparent', toolbar: { show: false }, animations: { enabled: true } },
+      theme: { mode: 'dark' },
+      series: [
+        { name: 'Peso (kg)', data: medidas.map(m => m.peso) },
+        { name: 'BF (%)',    data: medidas.map(m => m.bf)   },
+      ],
+      xaxis: {
+        categories: medidas.map(m => formatDate(m.data)),
+        labels: { style: { colors: '#52525b', fontSize: '10px' }, rotate: -30, maxHeight: 60 },
+        axisBorder: { show: false }, axisTicks: { show: false },
+      },
+      yaxis: [
+        { labels: { style: { colors: '#22d3ee' }, fontSize: '10px' } },
+        { opposite: true, labels: { style: { colors: '#f97316' }, fontSize: '10px' } },
+      ],
+      colors: ['#22d3ee', '#f97316'],
+      stroke: { curve: 'smooth', width: 2 },
+      fill: { type: 'gradient', gradient: { opacityFrom: 0.15, opacityTo: 0 } },
+      tooltip: { shared: true, intersect: false, theme: 'dark' },
+      grid: { borderColor: 'rgba(255,255,255,0.06)', strokeDashArray: 4 },
+      legend: { labels: { colors: '#71717a' }, fontSize: '11px' },
+      dataLabels: { enabled: false },
+    });
+    window._charts['m-body'].render();
+  } else if (chartEl) {
+    chartEl.innerHTML = '<p style="font-size:12px;color:#52525b;padding:16px 0">Sem dados de medidas</p>';
+  }
+  renderMobileVolumeBars();
+}
+
+// Horizontal progress bars — volume by muscle group
+function renderMobileVolumeBars() {
+  const el = document.getElementById('m-volume-bars');
+  if (!el) return;
+
+  const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 6);
+  const filtered = rawData.treinos.filter(t => t.data >= cutoff);
+
+  const volByGroup = {};
+  filtered.forEach(t => {
+    if (t.serie === null || t.reps === null || t.carga === null) return;
+    const g = t.grupo || 'Outros';
+    volByGroup[g] = (volByGroup[g] || 0) + t.serie * t.reps * t.carga;
+  });
+
+  const sorted = Object.entries(volByGroup).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  if (!sorted.length) { el.innerHTML = '<p style="font-size:12px;color:#52525b">Sem dados</p>'; return; }
+
+  const maxVol = sorted[0][1];
+  const COLS   = ['#22d3ee','#f97316','#a78bfa','#34d399','#fb7185','#fbbf24','#60a5fa','#e879f9'];
+
+  el.innerHTML = sorted.map(([g, v], i) => {
+    const pct = (v / maxVol * 100).toFixed(1);
+    const lbl = v >= 1000 ? (v / 1000).toFixed(1) + 't' : v.toFixed(0) + ' kg';
+    return `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+          <span style="color:#d4d4d8;font-weight:500">${escapeHtml(g)}</span>
+          <span style="color:${COLS[i%COLS.length]};font-weight:600">${lbl}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background:${COLS[i%COLS.length]}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// HISTÓRICO: search input + date-grouped cards
+function setupMobileHistorico() {
+  const input = document.getElementById('m-busca');
+  if (input) input.addEventListener('input', () => renderMobileHistorico(input.value));
+  renderMobileHistorico('');
+}
+
+function renderMobileHistorico(busca) {
+  const el = document.getElementById('m-historico-list');
+  if (!el) return;
+
+  const q = (busca || '').toLowerCase();
+  const filtered = rawData.treinos
+    .filter(t => !q || t.exercicio.toLowerCase().includes(q) || (t.treino || '').toLowerCase().includes(q))
+    .sort((a, b) => b.data - a.data)
+    .slice(0, 100);
+
+  if (!filtered.length) {
+    el.innerHTML = '<div style="text-align:center;padding:48px 0;color:#52525b"><p style="font-size:14px">Nenhum resultado</p></div>';
+    return;
+  }
+
+  const byDate = {};
+  filtered.forEach(t => {
+    const k = isoDateStr(t.data);
+    if (!byDate[k]) byDate[k] = { date: t.data, items: [] };
+    byDate[k].items.push(t);
+  });
+
+  el.innerHTML = Object.entries(byDate).map(([k, { date, items }]) => `
+    <div style="margin-bottom:20px">
+      <p class="m-section-title" style="padding:0 4px;margin-bottom:8px">${formatDate(date)}</p>
+      <div class="m-card">
+        ${items.map((t, i) => `
+          <div style="${i > 0 ? 'border-top:1px solid rgba(255,255,255,0.06);' : ''}padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div style="flex:1;min-width:0">
+              <p style="font-size:14px;font-weight:500;color:#f4f4f5;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(t.exercicio)}</p>
+              <p style="font-size:11px;color:#71717a;margin-top:2px">${escapeHtml(t.grupo)||'—'}${t.treino ? ' · ' + escapeHtml(t.treino) : ''}</p>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              ${t.carga !== null ? `<p style="font-size:14px;font-weight:700;color:#22d3ee;margin:0">${t.carga} kg</p>` : ''}
+              ${t.serie !== null && t.reps !== null ? `<p style="font-size:11px;color:#71717a">${t.serie}×${t.reps}</p>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// RECORDES: 2-column PR grid + 26-week heatmap
+function renderMobileRecordes() {
+  const grid = document.getElementById('m-prs-grid');
+  if (!grid) return;
+
+  const prMap = {};
+  rawData.treinos.forEach(t => {
+    if (!t.exercicio || t.carga === null) return;
+    if (!prMap[t.exercicio] || t.carga > prMap[t.exercicio].carga)
+      prMap[t.exercicio] = { carga: t.carga, data: t.data };
+  });
+
+  const prs = Object.entries(prMap)
+    .map(([ex, v]) => ({ exercicio: ex, ...v }))
+    .sort((a, b) => b.carga - a.carga);
+
+  if (!prs.length) {
+    grid.innerHTML = '<p style="font-size:12px;color:#52525b;grid-column:span 2;padding:16px 0">Sem recordes ainda</p>';
+    buildMiniHeatmap2(); return;
+  }
+
+  const COLS = ['#22d3ee','#f97316','#a78bfa','#34d399','#fb7185','#fbbf24'];
+  grid.innerHTML = prs.map((pr, i) => `
+    <div class="m-card" style="padding:14px">
+      <p style="font-size:11px;font-weight:600;color:${COLS[i%COLS.length]};margin:0 0 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(pr.exercicio)}</p>
+      <p style="font-size:22px;font-weight:800;color:#f4f4f5;margin:0;line-height:1">${pr.carga}<span style="font-size:11px;color:#71717a;margin-left:2px">kg</span></p>
+      <p style="font-size:10px;color:#52525b;margin-top:5px">${formatDate(pr.data)}</p>
+    </div>`).join('');
+
+  buildMiniHeatmap2();
+}
+
+// 26-week heatmap (Recordes tab)
+function buildMiniHeatmap2() {
+  const container = document.getElementById('m-heatmap2');
+  if (!container) return;
+
+  const countMap = {};
+  rawData.treinos.forEach(t => { const k = isoDateStr(t.data); countMap[k] = (countMap[k]||0)+1; });
+
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const DAY_MS = 86400000;
+  const WEEKS  = 26;
+  const start  = new Date(today.getTime() - (WEEKS * 7 - 1) * DAY_MS);
+  start.setDate(start.getDate() - start.getDay());
+
+  const cs = 12, gap = 2;
+  let html = `<div style="display:flex;gap:${gap}px">`;
+  for (let col = 0; col < WEEKS; col++) {
+    html += `<div style="display:flex;flex-direction:column;gap:${gap}px">`;
+    for (let row = 0; row < 7; row++) {
+      const d = new Date(start.getTime() + (col * 7 + row) * DAY_MS);
+      if (d > today) { html += `<div style="width:${cs}px;height:${cs}px"></div>`; continue; }
+      const n  = countMap[isoDateStr(d)] || 0;
+      const bg = n === 0 ? '#27272a' : n === 1 ? '#164e63' : n === 2 ? '#0e7490' : '#06b6d4';
+      html += `<div style="width:${cs}px;height:${cs}px;border-radius:2px;background:${bg}"></div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
 }
 
 // === SECTION: PWA — MANIFEST + SERVICE WORKER ===
