@@ -122,6 +122,10 @@
         <i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0"></i>
         <span class="nav-label text-sm font-medium">Visão Geral</span>
       </button>
+      <button class="nav-item flex items-center gap-3 px-3 py-2.5 w-full text-left" onclick="navTo('section-treino-atual', this)" aria-label="Treino Atual">
+        <i data-lucide="clipboard-list" class="w-5 h-5 shrink-0"></i>
+        <span class="nav-label text-sm font-medium">Treino Atual</span>
+      </button>
       <button class="nav-item flex items-center gap-3 px-3 py-2.5 w-full text-left" onclick="navTo('section-charts', this)" aria-label="Gráficos">
         <i data-lucide="bar-chart-2" class="w-5 h-5 shrink-0"></i>
         <span class="nav-label text-sm font-medium">Gráficos</span>
@@ -218,6 +222,19 @@
             <h3 class="text-sm font-semibold text-zinc-200 mb-4">Cardio Mensal</h3>
             <div id="chart-cardio-skeleton" class="skeleton h-48 w-full rounded-lg"></div>
             <div id="chart-cardio" class="hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- === SECTION: TREINO ATUAL === -->
+      <section id="section-treino-atual">
+        <h2 class="text-xs font-semibold tracking-widest uppercase text-zinc-500 mb-4">Treino Atual</h2>
+        <div class="glass-card p-5">
+          <div class="card-blob w-48 h-48 bg-cyan-500 -top-10 -left-10"></div>
+          <div id="treino-atual-skeleton" class="skeleton h-48 w-full rounded-lg"></div>
+          <div id="treino-atual-container" class="hidden">
+            <div id="treino-tabs" class="flex gap-2 mb-4 flex-wrap"></div>
+            <div id="treino-tab-content"></div>
           </div>
         </div>
       </section>
@@ -342,7 +359,8 @@ const _SHEET = 'https://docs.google.com/spreadsheets/d/1CDldl_FwN0c6QaHtT7T4enQA
 const CONFIG = {
   URL_TREINOS: _SHEET + '51350615',
   URL_MEDIDAS: _SHEET + '1526789886',
-  URL_CARDIO:  '',   // sem aba de cardio — deixar vazio para mostrar empty state
+  URL_CARDIO:       '',
+  URL_TREINO_ATUAL: _SHEET + '1836343206',
   META_PESO_KG: 75,
   STREAK_PAUSA_DIAS: 1,
 };
@@ -359,7 +377,7 @@ let state = {
   tvMode: false,
 };
 
-let rawData = { treinos: [], medidas: [], cardio: [] };
+let rawData = { treinos: [], medidas: [], cardio: [], treinoAtual: [] };
 let treinosFiltered = [];
 let cardioFiltered = [];
 let treinosPage = 1;
@@ -1323,20 +1341,30 @@ async function loadAllData() {
     } else { sk.style.display = ''; }
   });
 
-  const [treinosRes, medidasRes, cardioRes] = await Promise.allSettled([
+  const [treinosRes, medidasRes, cardioRes, treinoAtualRes] = await Promise.allSettled([
     fetchCSV(CONFIG.URL_TREINOS, 'Treinos'),
     fetchCSV(CONFIG.URL_MEDIDAS, 'Medidas'),
     fetchCSV(CONFIG.URL_CARDIO, 'Cardio'),
+    fetchTreinoAtualCSV(CONFIG.URL_TREINO_ATUAL),
   ]);
 
   // Parse each dataset
-  const treinosResult = treinosRes.status === 'fulfilled' ? treinosRes.value : { ok: false, data: [], error: 'Falha inesperada' };
-  const medidasResult = medidasRes.status === 'fulfilled' ? medidasRes.value : { ok: false, data: [], error: 'Falha inesperada' };
-  const cardioResult  = cardioRes.status  === 'fulfilled' ? cardioRes.value  : { ok: false, data: [], error: 'Falha inesperada' };
+  const treinosResult     = treinosRes.status     === 'fulfilled' ? treinosRes.value     : { ok: false, data: [] };
+  const medidasResult     = medidasRes.status     === 'fulfilled' ? medidasRes.value     : { ok: false, data: [] };
+  const cardioResult      = cardioRes.status      === 'fulfilled' ? cardioRes.value      : { ok: false, data: [] };
+  const treinoAtualResult = treinoAtualRes.status === 'fulfilled' ? treinoAtualRes.value : { ok: false, data: [] };
 
-  rawData.treinos = parseTreinos(treinosResult.data);
-  rawData.medidas = parseMedidas(medidasResult.data);
-  rawData.cardio  = parseCardio(cardioResult.data);
+  rawData.treinos     = parseTreinos(treinosResult.data);
+  rawData.medidas     = parseMedidas(medidasResult.data);
+  rawData.cardio      = parseCardio(cardioResult.data);
+  rawData.treinoAtual = treinoAtualResult.data;
+
+  // Treino Atual
+  const taSk = document.getElementById('treino-atual-skeleton');
+  if (taSk) taSk.style.display = '';
+  const taContainer = document.getElementById('treino-atual-container');
+  if (taContainer) { taContainer.innerHTML = '<div id="treino-tabs" class="flex gap-2 mb-4 flex-wrap"></div><div id="treino-tab-content"></div>'; taContainer.classList.add('hidden'); }
+  renderTreinoAtual(rawData.treinoAtual);
 
   // Metrics (always render, even if some data missing)
   renderMetrics(rawData.medidas, rawData.treinos, rawData.cardio);
@@ -1404,6 +1432,118 @@ async function loadAllData() {
 
   // TV mode
   if (state.tvMode) toggleTVMode(true);
+}
+
+// === SECTION: TREINO ATUAL ===
+async function fetchTreinoAtualCSV(url) {
+  if (!url) return { ok: false, data: [] };
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    const data = await parseTreinoAtualCSV(text);
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, data: [], error: e.message };
+  }
+}
+
+function parseTreinoAtualCSV(text) {
+  return new Promise((resolve) => {
+    Papa.parse(text, {
+      header: false,
+      complete: (results) => {
+        const rows = results.data;
+        // A aba tem 2 linhas de cabeçalho antes do header real "DIA,EXERCÍCIO,..."
+        const headerIdx = rows.findIndex(r => String(r[0]).trim().toUpperCase() === 'DIA');
+        if (headerIdx === -1) { resolve([]); return; }
+        const headers = rows[headerIdx].map(h => String(h).trim());
+        const data = rows.slice(headerIdx + 1)
+          .filter(r => r[0] && String(r[0]).trim() !== '' && !String(r[0]).startsWith('#'))
+          .map(r => {
+            const obj = {};
+            headers.forEach((h, i) => { if (h) obj[h] = String(r[i] || '').trim(); });
+            return obj;
+          })
+          .filter(r => r['DIA'] && (r['EXERCÍCIO'] || r['EXERCICIO']));
+        resolve(data);
+      },
+      error: () => resolve([]),
+    });
+  });
+}
+
+function renderTreinoAtual(rows) {
+  hideSkeleton('treino-atual-skeleton');
+  const container = document.getElementById('treino-atual-container');
+
+  if (!rows.length) {
+    emptyState('treino-atual-container', 'Sem dados do treino atual');
+    return;
+  }
+
+  container.classList.remove('hidden');
+
+  const groups = {};
+  rows.forEach(r => {
+    const dia = r['DIA'];
+    if (!groups[dia]) groups[dia] = [];
+    groups[dia].push(r);
+  });
+
+  const dias = Object.keys(groups);
+  const DAY_COLORS = { A: '#22d3ee', B: '#f97316', C: '#a78bfa', UPPER: '#34d399', LOWER: '#fb7185' };
+  const tabsEl = document.getElementById('treino-tabs');
+  const contentEl = document.getElementById('treino-tab-content');
+
+  function renderTab(dia) {
+    tabsEl.querySelectorAll('.treino-tab').forEach(btn => {
+      const active = btn.dataset.dia === dia;
+      const c = DAY_COLORS[dia] || '#22d3ee';
+      btn.style.background = active ? c + '22' : 'transparent';
+      btn.style.borderColor = active ? c : 'rgba(255,255,255,0.1)';
+      btn.style.color = active ? c : '#71717a';
+    });
+
+    const exs = groups[dia];
+    contentEl.innerHTML = `
+      <div class="overflow-x-auto rounded-lg border border-zinc-800">
+        <table class="data-table w-full text-xs border-collapse">
+          <thead>
+            <tr>
+              <th class="px-3 py-2.5 text-left text-zinc-400 font-medium" scope="col">Exercício</th>
+              <th class="px-3 py-2.5 text-center text-zinc-400 font-medium" scope="col">Séries</th>
+              <th class="px-3 py-2.5 text-center text-zinc-400 font-medium" scope="col">Reps</th>
+              <th class="px-3 py-2.5 text-left text-zinc-400 font-medium" scope="col">Grupo</th>
+              <th class="px-3 py-2.5 text-left text-zinc-400 font-medium" scope="col">Obs</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exs.map(ex => `
+              <tr>
+                <td class="px-3 py-2 text-zinc-200 font-medium">${escapeHtml(ex['EXERCÍCIO'] || ex['EXERCICIO'] || '')}</td>
+                <td class="px-3 py-2 text-center text-zinc-300">${escapeHtml(ex['SÉRIES'] || ex['SERIES'] || '')}</td>
+                <td class="px-3 py-2 text-center text-zinc-300">${escapeHtml(ex['REPETIÇÕES'] || ex['REPETICOES'] || '')}</td>
+                <td class="px-3 py-2 text-zinc-400">${escapeHtml(ex['GRUPO'] || '')}</td>
+                <td class="px-3 py-2 text-zinc-500 italic">${escapeHtml(ex['OBS'] || '')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-zinc-600 mt-2">${exs.length} exercício${exs.length !== 1 ? 's' : ''}</p>`;
+  }
+
+  tabsEl.innerHTML = '';
+  dias.forEach((dia, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'treino-tab period-btn font-semibold';
+    btn.dataset.dia = dia;
+    btn.textContent = `Treino ${dia}`;
+    btn.onclick = () => renderTab(dia);
+    tabsEl.appendChild(btn);
+  });
+
+  renderTab(dias[0]);
 }
 
 // === SECTION: INIT ===
