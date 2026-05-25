@@ -2,8 +2,18 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fitness Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FitDash</title>
+
+  <!-- PWA: iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitDash" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxyZWN0IHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiIHJ4PSIyMDAiIGZpbGw9IiMwOTA5MGIiLz48dGV4dCB4PSI1MTIiIHk9IjYyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjUwMCIgZmlsbD0iIzIyZDNlZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+HpDwvdGV4dD48L3N2Zz4=" />
+
+  <!-- PWA: Android / Chrome -->
+  <meta name="theme-color" content="#09090b" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -28,11 +38,30 @@
     * { box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #09090b; color: #f4f4f5; margin: 0; }
 
-    /* Sidebar */
+    /* Sidebar — desktop: inline colapsável */
     #sidebar { width: 64px; transition: width 0.3s ease; overflow: hidden; }
     #sidebar.expanded { width: 220px; }
     #sidebar .nav-label { opacity: 0; white-space: nowrap; transition: opacity 0.2s; }
     #sidebar.expanded .nav-label { opacity: 1; }
+
+    /* Sidebar — mobile: drawer deslizante */
+    #sidebar-overlay { display: none; }
+    @media (max-width: 1023px) {
+      #sidebar {
+        position: fixed !important;
+        left: -280px !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100% !important;
+        z-index: 40;
+        overflow-y: auto !important;
+        transition: left 0.3s ease !important;
+      }
+      #sidebar.open { left: 0 !important; }
+      #sidebar .nav-label { opacity: 1 !important; }
+      #sidebar-toggle { display: none !important; }
+      #sidebar-overlay { display: block; }
+    }
 
     /* Cards glass */
     .glass-card {
@@ -106,6 +135,9 @@
   </button>
 </div>
 
+<!-- Overlay drawer mobile -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden backdrop-blur-sm" onclick="closeSidebar()" aria-hidden="true"></div>
+
 <!-- ============================= MAIN LAYOUT ============================= -->
 <div id="main-layout" class="flex h-screen overflow-hidden">
 
@@ -153,11 +185,14 @@
   </aside>
 
   <!-- MAIN CONTENT -->
-  <main class="flex-1 flex flex-col overflow-hidden">
+  <main id="main-content" class="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
 
     <!-- NAVBAR -->
     <header class="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-zinc-950/80 backdrop-blur border-b border-zinc-800/50">
       <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors" aria-label="Abrir menu">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
         <i data-lucide="dumbbell" class="w-6 h-6 text-cyan-400"></i>
         <span class="text-base font-semibold text-zinc-100">Fitness Dashboard</span>
       </div>
@@ -600,13 +635,25 @@ function hideSkeleton(skeletonId) {
 
 // === SECTION: SIDEBAR TOGGLE ===
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('expanded');
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    const open = document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('hidden', !open);
+  } else {
+    document.getElementById('sidebar').classList.toggle('expanded');
+  }
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.add('hidden');
 }
 
 function navTo(id, btn) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   btn?.classList.add('active');
+  if (window.innerWidth < 1024) closeSidebar();
 }
 
 // === SECTION: TV MODE ===
@@ -1545,6 +1592,55 @@ function renderTreinoAtual(rows) {
 
   renderTab(dias[0]);
 }
+
+// === SECTION: PWA — MANIFEST + SERVICE WORKER ===
+(function initPWA() {
+  // Manifest inline via Blob (Android/Chrome)
+  const manifest = {
+    name: 'Fitness Dashboard',
+    short_name: 'FitDash',
+    description: 'Painel de treinos e evolução corporal',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#09090b',
+    theme_color: '#09090b',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%2309090b"/><text y=".9em" font-size="85" x="50%" text-anchor="middle">💪</text></svg>', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+
+  // Service Worker inline via Blob (cache offline)
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'fitdash-v1';
+      const URLS  = [self.location.href.replace(/\\/sw-\\w+\\.js.*/, '/')];
+      self.addEventListener('install',  e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)).catch(()=>{})); self.skipWaiting(); });
+      self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });
+      self.addEventListener('fetch',    e => {
+        if (e.request.url.includes('google')) return; // nunca cachear CSVs do Sheets
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => { const c=res.clone(); caches.open(CACHE).then(ca=>ca.put(e.request,c)); return res; })));
+      });
+    `;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+  }
+
+  // Safe area padding para o iPhone (notch / Dynamic Island)
+  const style = document.createElement('style');
+  style.textContent = `
+    @supports (padding-top: env(safe-area-inset-top)) {
+      header { padding-top: calc(0.75rem + env(safe-area-inset-top)) !important; }
+      #sidebar { padding-top: calc(1rem + env(safe-area-inset-top)) !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
 
 // === SECTION: INIT ===
 document.addEventListener('DOMContentLoaded', () => {
