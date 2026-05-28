@@ -2195,6 +2195,51 @@ function editHistoricoEntry(id) {
   openLogModalForEdit(entry);
 }
 
+// ── Swipe-to-delete ──
+window._openSwipeEl = null;
+
+function closeSwipe(wrapper) {
+  var content = wrapper.querySelector('.swipe-row-content');
+  if (content) { content.style.transition = 'transform 0.2s ease'; content.style.transform = 'translateX(0)'; }
+  if (window._openSwipeEl === wrapper) window._openSwipeEl = null;
+}
+
+function initSwipeDelete(wrapper) {
+  var content = wrapper.querySelector('.swipe-row-content');
+  if (!content) return;
+  var SNAP = 76, startX, startY, dragging = false, horizontal = null;
+
+  wrapper.addEventListener('touchstart', function(e) {
+    if (window._openSwipeEl && window._openSwipeEl !== wrapper) closeSwipe(window._openSwipeEl);
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dragging = true; horizontal = null;
+    content.style.transition = 'none';
+  }, { passive: true });
+
+  wrapper.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (horizontal === null) {
+      if (Math.abs(dx) > Math.abs(dy) + 4) horizontal = true;
+      else if (Math.abs(dy) > Math.abs(dx) + 4) { horizontal = false; dragging = false; return; }
+      else return;
+    }
+    if (!horizontal) return;
+    content.style.transform = 'translateX(' + Math.max(-(SNAP + 10), Math.min(0, dx)) + 'px)';
+  }, { passive: true });
+
+  wrapper.addEventListener('touchend', function(e) {
+    if (!dragging || !horizontal) { dragging = false; return; }
+    dragging = false;
+    var dx = e.changedTouches[0].clientX - startX;
+    content.style.transition = 'transform 0.2s ease';
+    if (dx < -(SNAP / 2)) { content.style.transform = 'translateX(-' + SNAP + 'px)'; window._openSwipeEl = wrapper; }
+    else { content.style.transform = 'translateX(0)'; window._openSwipeEl = null; }
+  });
+}
+
 // Remove entrada local do localStorage pelo _id
 function removeLocalTreino(id) {
   try {
@@ -2214,9 +2259,6 @@ function deleteHistoricoEntry(id) {
     showToast('Entradas sincronizadas devem ser excluídas direto no Google Sheets', 'warn');
     return;
   }
-
-  // Confirmação leve via modal nativo
-  if (!confirm(`Excluir "${entry.exercicio}"?\nEssa ação não pode ser desfeita.`)) return;
 
   // Remove de rawData + localStorage
   const realId = entry._id || id;
@@ -2636,39 +2678,71 @@ function renderMobileHistorico(busca) {
     byDate[k].items.push(t);
   });
 
-  el.innerHTML = Object.entries(byDate).map(([k, { date, items }]) => `
-    <div style="margin-bottom:20px">
-      <p class="m-section-title" style="padding:0 4px;margin-bottom:8px">${formatDate(date)}</p>
-      <div class="m-card">
-        ${items.map((t, i) => {
-          const rid = t._id || `hist_${_eid++}`;
-          t._renderId = rid;
-          window._historicoEntries[rid] = t;
-          return `
-          <div style="${i > 0 ? 'border-top:1px solid rgba(255,255,255,0.06);' : ''}padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:6px;overflow:hidden">
-                <p style="font-size:14px;font-weight:500;color:#f4f4f5;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(t.exercicio)}</p>
-                ${t._local ? `<span style="flex-shrink:0;font-size:9px;font-weight:700;background:rgba(34,211,238,0.12);color:#22d3ee;padding:2px 6px;border-radius:4px">LOCAL</span>` : ''}
-              </div>
-              <p style="font-size:11px;color:#71717a;margin-top:2px">${escapeHtml(t.grupo)||'—'}${t.treino ? ' · ' + escapeHtml(t.treino) : ''}${t.equip ? ' · ' + escapeHtml(t.equip) : ''}</p>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-              <div style="text-align:right">
-                ${t.carga !== null ? `<p style="font-size:14px;font-weight:700;color:#22d3ee;margin:0">${t.carga} kg</p>` : ''}
-                ${t.serie !== null && t.reps !== null ? `<p style="font-size:11px;color:#71717a">${t.serie}×${t.reps}</p>` : ''}
-              </div>
-              <button onclick="editHistoricoEntry('${rid}')" style="flex-shrink:0;background:rgba(255,255,255,0.05);border:none;border-radius:8px;padding:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a;touch-action:manipulation" title="Editar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button onclick="deleteHistoricoEntry('${rid}')" style="flex-shrink:0;background:rgba(239,68,68,0.08);border:none;border-radius:8px;padding:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#f87171;touch-action:manipulation" title="Excluir">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-              </button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`).join('');
+  var todayStr  = isoDateStr(new Date());
+  var PENCIL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var TRASH_SVG  = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+  var groupsHtml = Object.entries(byDate).map(function(kv) {
+    var k     = kv[0];
+    var date  = kv[1].date;
+    var items = kv[1].items;
+    var isToday = (k === todayStr);
+
+    var rowsHtml = items.map(function(t, i) {
+      var rid = t._id || ('hist_' + (_eid++));
+      t._renderId = rid;
+      window._historicoEntries[rid] = t;
+
+      var localBadge = t._local ? '<span style="flex-shrink:0;font-size:9px;font-weight:700;background:rgba(34,211,238,0.12);color:#22d3ee;padding:2px 6px;border-radius:4px">LOCAL</span>' : '';
+      var sub = escapeHtml(t.grupo) || '—';
+      if (t.treino) sub += ' · ' + escapeHtml(t.treino);
+      if (t.equip)  sub += ' · ' + escapeHtml(t.equip);
+      var cargaHtml = t.carga !== null ? '<p style="font-size:14px;font-weight:700;color:#22d3ee;margin:0">' + t.carga + ' kg</p>' : '';
+      var setsHtml  = (t.serie !== null && t.reps !== null) ? '<p style="font-size:11px;color:#71717a">' + t.serie + '\xD7' + t.reps + '</p>' : '';
+
+      // Conteúdo interno da linha (igual para swipe e normal)
+      var inner = '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;align-items:center;gap:6px;overflow:hidden">'
+          + '<p style="font-size:14px;font-weight:500;color:#f4f4f5;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(t.exercicio) + '</p>'
+          + localBadge
+        + '</div>'
+        + '<p style="font-size:11px;color:#71717a;margin-top:2px">' + sub + '</p>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+        + '<div style="text-align:right">' + cargaHtml + setsHtml + '</div>'
+        + '<button onclick="editHistoricoEntry(\'' + rid + '\')" style="flex-shrink:0;background:rgba(255,255,255,0.05);border:none;border-radius:8px;padding:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a;touch-action:manipulation">' + PENCIL_SVG + '</button>'
+      + '</div>';
+
+      // Entradas LOCAL de hoje: wrapper com swipe-to-delete
+      if (isToday && t._local) {
+        return '<div data-swipe-rid="' + rid + '" style="position:relative;overflow:hidden' + (i > 0 ? ';border-top:1px solid rgba(255,255,255,0.06)' : '') + '">'
+          + '<button onclick="deleteHistoricoEntry(\'' + rid + '\')" style="position:absolute;right:0;top:0;bottom:0;width:76px;background:#ef4444;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff">'
+            + TRASH_SVG
+            + '<span style="font-size:10px;font-weight:700">Excluir</span>'
+          + '</button>'
+          + '<div class="swipe-row-content" style="position:relative;background:#18181b;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">'
+            + inner
+          + '</div>'
+          + '</div>';
+      }
+
+      // Outras entradas: linha simples
+      var border = i > 0 ? 'border-top:1px solid rgba(255,255,255,0.06);' : '';
+      return '<div style="' + border + 'padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">' + inner + '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:20px">'
+      + '<p class="m-section-title" style="padding:0 4px;margin-bottom:8px">' + formatDate(date) + '</p>'
+      + '<div class="m-card">' + rowsHtml + '</div>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML = groupsHtml;
+
+  // Ativar swipe-to-delete nas linhas de hoje
+  el.querySelectorAll('[data-swipe-rid]').forEach(function(wrapper) {
+    initSwipeDelete(wrapper);
+  });
 }
 
 // RECORDES: 2-column PR grid + 26-week heatmap
