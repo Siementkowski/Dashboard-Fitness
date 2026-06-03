@@ -1917,7 +1917,11 @@ function switchLogType(type, btn) {
 
 function populateDataLists() {
   const t = rawData.treinos;
-  const nomesTreino  = [...new Set(t.map(x => x.treino).filter(Boolean))].slice(0, 20);
+  const _treinos = [...new Set(t.map(x => x.treino).filter(Boolean))].slice(0, 20);
+  // Se ainda não há nomes de treino no histórico, sugere opções padrão
+  const nomesTreino = _treinos.length
+    ? _treinos
+    : ['Treino A', 'Treino B', 'Treino C', 'Treino D', 'Superior', 'Inferior', 'Full Body', 'Push', 'Pull', 'Legs'];
   const nomesExerc   = [...new Set(t.map(x => x.exercicio).filter(Boolean))].slice(0, 80);
   const nomesGrupo   = [...new Set(t.map(x => x.grupo).filter(Boolean))].sort().slice(0, 20);
   [['dl-treinos', nomesTreino], ['dl-exercicios', nomesExerc], ['dl-grupos', nomesGrupo]].forEach(([id, vals]) => {
@@ -2038,8 +2042,10 @@ async function saveLogEntry(type) {
       'RPE':            rpe    || '',
     });
 
-    // Manter data, treino e equipamento para a próxima série; limpar exercício, carga e RPE
+    // Manter apenas data e nome do treino; limpar exercício, grupo, equip, carga e RPE
     document.getElementById('log-treino-exercicio').value = '';
+    document.getElementById('log-treino-grupo').value     = '';
+    document.getElementById('log-treino-equip').value     = '';
     document.getElementById('log-treino-carga').value     = '';
     document.getElementById('log-treino-rpe').value       = '';
     document.getElementById('log-treino-exercicio').focus();
@@ -2139,6 +2145,41 @@ function clearLocalData() {
   localStorage.removeItem('fitdash_local_medidas');
   showToast('Dados locais apagados');
   loadAllData();
+}
+
+async function syncLocalData() {
+  const localTreinos = rawData.treinos.filter(t => t._local);
+  const localMedidas = rawData.medidas.filter(m => m._local);
+  const total = localTreinos.length + localMedidas.length;
+  if (!total) { showToast('Nenhuma entrada local pendente'); return; }
+
+  // Bloquear duplo clique
+  const btn = document.getElementById('m-sync-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+
+  for (const t of localTreinos) {
+    await postToSheets('treino', {
+      'Data':           formatDate(t.data),
+      'Exercício':      t.exercicio   || '',
+      'Grupo Muscular': t.grupo       || '',
+      'Equipamento':    t.equip       || '',
+      'Séries':         t.serie  != null ? String(t.serie)  : '',
+      'Repetições':     t.reps   != null ? String(t.reps)   : '',
+      'Carga (kg)':     t.carga  != null ? String(t.carga)  : '',
+      'RPE':            t.rpe    != null ? String(t.rpe)    : '',
+    });
+  }
+  for (const m of localMedidas) {
+    await postToSheets('medida', {
+      'Data':           formatDate(m.data),
+      'Peso corporal':  m.peso != null ? m.peso + ' kg' : '',
+      '% de gordura':   m.bf   != null ? m.bf   + '%'   : '',
+    });
+  }
+
+  showToast('✓ ' + total + ' entrada(s) reenviadas — confirme na planilha', 'success');
+  if (btn) { btn.disabled = false; btn.textContent = '↑ Sincronizar'; }
+  renderMobileHistorico(document.getElementById('m-busca')?.value || '');
 }
 
 // Atualiza entrada local existente no localStorage
@@ -2647,9 +2688,12 @@ function renderMobileHistorico(busca) {
     if (localCount > 0) {
       infoEl.classList.remove('hidden');
       infoEl.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(34,211,238,0.07);border-radius:12px;border:1px solid rgba(34,211,238,0.18)">
-          <span style="font-size:12px;color:#22d3ee">📱 ${localCount} entrada${localCount>1?'s':''} salva${localCount>1?'s':''} localmente</span>
-          <button onclick="clearLocalData()" style="font-size:12px;color:#71717a;background:none;border:none;cursor:pointer;padding:0">Limpar após sync</button>
+        <div style="padding:12px 14px;background:rgba(34,211,238,0.07);border-radius:12px;border:1px solid rgba(34,211,238,0.18)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:12px;color:#22d3ee">📱 ${localCount} entrada${localCount>1?'s':''} pendente${localCount>1?'s':''} de sync</span>
+            <button onclick="clearLocalData()" style="font-size:11px;color:#52525b;background:none;border:none;cursor:pointer;padding:0">Limpar</button>
+          </div>
+          <button id="m-sync-btn" onclick="syncLocalData()" style="width:100%;padding:9px;background:rgba(34,211,238,0.15);border:1px solid rgba(34,211,238,0.3);border-radius:8px;color:#22d3ee;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.01em">↑ Sincronizar com Sheets</button>
         </div>`;
     } else {
       infoEl.classList.add('hidden');
